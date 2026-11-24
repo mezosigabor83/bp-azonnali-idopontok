@@ -1,0 +1,26 @@
+name: Időpontfrissítés próbája
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proba:
+    name: Próba ${{ matrix.futas }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        futas: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.57.0
+      - run: npx playwright install --with-deps chromium
+      - run: node bp-kereso-frissito-v6.cjs
+      - run: node publish-data.cjs
