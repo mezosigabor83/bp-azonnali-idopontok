@@ -164,8 +164,19 @@ async function checkProfile(context, { name, path, expected }, incomplete) {
         for (const [index, label] of rooms.entries()) {
           const [key] = clinicKeys(label);
           if (!key) throw Error('Ismeretlen szoba');
-          try { await booking(page, url, { index, key, label }, null, record); }
-          catch (error) { incomplete.add(key); console.error(name, label, error.message); }
+                    const room = { index, key, label };
+          try {
+            try {
+              await booking(page, url, room, null, record);
+            } catch (error) {
+              if (error.name !== 'TimeoutError') throw error;
+              console.warn(name, label, 'Időtúllépés, újrapróbálás.');
+              await booking(page, url, room, null, record);
+            }
+          } catch (error) {
+            incomplete.add(key);
+            console.error(name, label, error.message);
+          }
         }
       } catch (error) {
         for (const key of keys.length ? keys : expected) incomplete.add(key);
