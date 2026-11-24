@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="hu">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pszichológus szabad időponttal</title></head>
+<body>
+<style>
+#bp-azonnali-proba *{box-sizing:border-box}
+#bp-azonnali-proba{margin:0;background:#f5f5ef;color:#23332d;font:17px/1.55 system-ui,sans-serif}
+#bp-azonnali-proba main{max-width:720px;margin:7vh auto;padding:28px}
+#bp-azonnali-proba h1{font:clamp(2.4rem,7vw,4rem)/1.05 Georgia,serif;margin:0 0 18px}
+#bp-azonnali-proba p{max-width:58ch}
+#bp-azonnali-proba label{display:block;font-weight:650;margin-top:30px}
+#bp-azonnali-proba select{width:100%;padding:12px;margin:8px 0 18px;border:1px solid #687b72;border-radius:8px;background:white;font:inherit;color:inherit}
+#bp-azonnali-proba article{padding:16px 20px;margin:10px 0;border:1px solid #d0d9d2;border-radius:12px;background:white}
+#bp-azonnali-proba h2{margin-top:0}
+#bp-azonnali-proba p{margin-top:0}
+#bp-azonnali-proba article p{margin-bottom:4px}
+#bp-azonnali-proba a{color:#19543b}
+#bp-azonnali-proba small{display:block;margin-top:25px;color:#455950}
+</style>
+<div id="bp-azonnali-proba">
+<main>
+<h1>Pszichológus szabad időponttal</h1>
+<p role="status" id="update-status">Az időpontadatok betöltése…</p>
+<label for="bp-azonnali-clinic">Válassz rendelőt</label>
+<select id="bp-azonnali-clinic">
+<option value="haller">Haller utca 88.</option>
+<option value="bartok">Bartók Béla út 9.</option>
+<option value="aradi">Aradi utca 38.</option>
+<option value="pesti">Pesti út 70.</option>
+</select>
+<section id="results" aria-live="polite"></section>
+
+</main>
+</div>
+<script>
+(() => {
+const root = document.getElementById("bp-azonnali-proba");
+
+let profiles = [];
+let period;
+let incomplete = [];
+const clinics = ['haller', 'bartok', 'aradi', 'pesti'];
+const isDate = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+
+function applyUpdate(data) {
+  if (!data || !isDate(data.from) || !isDate(data.until) || data.from >= data.until ||
+      !Array.isArray(data.incomplete) || !data.incomplete.every(key => clinics.includes(key)) ||
+      !Array.isArray(data.profiles) || !data.profiles.every(profile =>
+        profile && typeof profile.name === 'string' && /^[a-z0-9-]+$/.test(profile.path) &&
+        typeof profile.waitlistOnly === 'boolean' && profile.availability &&
+        typeof profile.availability === 'object' && !Array.isArray(profile.availability) &&
+        Object.entries(profile.availability).every(([key, date]) => clinics.includes(key) && isDate(date))) ||
+      new Set(data.profiles.map(profile => profile.path)).size !== data.profiles.length) {
+    throw new Error('Érvénytelen ellenőrzési fájl.');
+  }
+  profiles = data.profiles;
+  period = {from:data.from, until:data.until};
+  incomplete = data.incomplete;
+}
+
+function matchesFor(clinic, entries = profiles) {
+  return entries.filter(profile => {
+    const date = profile.availability[clinic];
+    return !profile.waitlistOnly && date >= period.from && date < period.until;
+  });
+}
+
+const clinic = root.querySelector('#bp-azonnali-clinic');
+const results = root.querySelector('#results');
+
+function render() {
+  results.replaceChildren();
+  if (!period) return;
+  const matches = matchesFor(clinic.value);
+  if (incomplete.includes(clinic.value)) {
+    const warning = document.createElement('p');
+    warning.textContent = 'Néhány foglalót nem sikerült ellenőrizni. A lista hiányos lehet.';
+    results.append(warning);
+  }
+  if (!matches.length && !incomplete.includes(clinic.value)) {
+    results.textContent = 'A vizsgált időszakban ehhez a rendelőhöz nincs találat.';
+    return;
+  }
+
+  for (const {name, path} of matches) {
+    const card = document.createElement('article');
+    const title = document.createElement('h2');
+    const link = document.createElement('a');
+    link.href = 'https://budapestpszichologia.hu/munkatarsak/' + path + '/';
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.textContent = name;
+    title.append(link);
+    card.append(title);
+    results.append(card);
+  }
+}
+
+clinic.addEventListener('change', render);
+
+const status = root.querySelector('#update-status');
+async function loadAvailability() {
+  try {
+    const response = await fetch('./adatok.json', { cache: 'no-store' });
+    if (!response.ok) throw new Error('Az adatok nem érhetők el.');
+    const data = await response.json();
+    const age = Date.now() - Date.parse(data.checkedAt);
+    if (!Number.isFinite(age) || age < 0 || age > 6 * 60 * 60 * 1000) {
+      throw new Error('Az adatok elavultak.');
+    }
+    const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Budapest' }).format(new Date());
+    applyUpdate(data);
+    if (period.from < today) period.from = today;
+    const checked = new Intl.DateTimeFormat('hu-HU', {
+      timeZone: 'Europe/Budapest', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    }).format(new Date(data.checkedAt));
+    status.textContent = 'Utoljára ellenőrizve: ' + checked + '. Az aktuális időpontokat a foglaló mutatja.';
+    render();
+  } catch {
+    period = undefined;
+    render();
+    status.textContent = 'A szabad időpontok listája átmenetileg nem elérhető.';
+  }
+}
+loadAvailability();
+})();
+</script>
+</body>
+</html>
