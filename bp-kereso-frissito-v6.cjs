@@ -204,7 +204,15 @@ async function main() {
     const results = [];
     for (const [index, profile] of selected.entries()) {
       console.log(`[${index + 1}/${selected.length}] ${profile.name}`);
-      results.push(await checkProfile(context, profile, incomplete));
+      const profileIncomplete = new Set();
+      let result = await checkProfile(context, profile, profileIncomplete);
+      if (profileIncomplete.size) {
+        console.warn(profile.name, 'Hiányos ellenőrzés, a profil újrapróbálása.');
+        profileIncomplete.clear();
+        result = await checkProfile(context, profile, profileIncomplete);
+      }
+      for (const key of profileIncomplete) incomplete.add(key);
+      results.push(result);
     }
     const output = join(__dirname, selectedPath ? 'bp-kereso-adatok-celzott.json' : 'bp-kereso-adatok-bovitett.json');
     await writeFile(output + '.tmp', JSON.stringify({ from, until, incomplete: [...incomplete], profiles: results }, null, 2) + '\n');
