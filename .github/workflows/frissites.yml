@@ -2,7 +2,7 @@ name: Szabad időpontok frissítése
 on:
   workflow_dispatch:
   schedule:
-    - cron: '23 * * * *'
+        - cron: '7,22,37,52 * * * *'
 
 permissions:
   contents: read
