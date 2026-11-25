@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="hu">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pszichológus szabad időponttal</title></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Szabad időpontok</title></head>
 <body>
 <style>
 #bp-azonnali-proba *{box-sizing:border-box}
@@ -15,11 +15,12 @@
 #bp-azonnali-proba p{margin-top:0}
 #bp-azonnali-proba article p{margin-bottom:4px}
 #bp-azonnali-proba a{color:#19543b}
-#bp-azonnali-proba small{display:block;margin-top:25px;color:#455950}
+#bp-azonnali-proba #update-status{font-size:.875rem;color:#555}
 </style>
 <div id="bp-azonnali-proba">
 <main>
-<h1>Pszichológus szabad időponttal</h1>
+<h1>Szabad időpontok</h1>
+<p>Itt láthatod, melyik kollégánknál van most szabad időpont. Válaszd ki a rendelőt, és kattints a szakember nevére: a bemutatkozó oldalán kiválaszthatod a szolgáltatást (például egyéni konzultáció), és ott foglalhatsz időpontot.</p>
 <p role="status" id="update-status">Az időpontadatok betöltése…</p>
 <label for="bp-azonnali-clinic">Válassz rendelőt</label>
 <select id="bp-azonnali-clinic">
@@ -114,7 +115,7 @@ async function loadAvailability() {
     const checked = new Intl.DateTimeFormat('hu-HU', {
       timeZone: 'Europe/Budapest', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
     }).format(new Date(data.checkedAt));
-    status.textContent = 'Utoljára ellenőrizve: ' + checked + '. Az aktuális időpontokat a foglaló mutatja.';
+    status.textContent = 'Frissítve: ' + checked + '. A pontos időpontokat a foglalás során látod.';
     render();
   } catch {
     period = undefined;
